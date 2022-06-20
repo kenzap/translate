@@ -8,9 +8,6 @@ import commonjs from "@rollup/plugin-commonjs"
 import copy from 'rollup-plugin-copy'
 import fs from 'fs';
 import replaceHtmlVars from 'rollup-plugin-replace-html-vars';
-
-// TODO - remove these two
-// import serve from 'rollup-plugin-serve'
 import livereload from 'rollup-plugin-livereload'
 
 // get build mode
@@ -87,7 +84,8 @@ if(prodEnv){
 	fs.writeFileSync( targetFolder + 'locales/default.json', '{ "language": "default", "texts": {} }', { flag:'w' } ); // set defaults
 
 	let scriptFilesAll = glob.sync(absolutePath("src/**/*.js"))
-	scriptFilesAll.reduce((files, input) => { i18n(input); });
+	scriptFilesAll.forEach((input) => { i18n(input); });
+
 	function i18n(key){ // export i18n
 
 		// get current strings
@@ -98,13 +96,22 @@ if(prodEnv){
 		if (fs.existsSync( key )){
 			
 			var temp = fs.readFileSync( key, {encoding:'utf8', flag:'r'});
-			var regex = new RegExp(/__\((.*?)\)/g);
-			var result;
-			while (result = regex.exec(temp)) {
+			var regex = [
+				new RegExp(/__\('(.*?)'/g),
+				new RegExp(/__\("(.*?)"/g),
+				new RegExp(/__html\('(.*?)'/g),
+				new RegExp(/__html\("(.*?)"/g),
+				new RegExp(/__attr\('(.*?)'/g),
+				new RegExp(/__attr\("(.*?)"/g),
+				new RegExp(/__src\('(.*?)'/g),
+				new RegExp(/__src\("(.*?)"/g)
+			]
 
-				var string = result[1].replace(/\"/g, '','g').replace(/'/g, '');
-				defJS['texts'][string] = string;
-			}
+			var result; regex.forEach(reg => { while (result = reg.exec(temp)){ 
+				
+				defJS['texts'][result[1]] = result[1]; 
+			
+			} });
 
 			// write default locale
 			fs.writeFileSync( targetFolder + 'locales/default.json', JSON.stringify(defJS) ); 
